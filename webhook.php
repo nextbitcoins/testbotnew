@@ -101,7 +101,7 @@ Start mining now and earn rewards! 💸
                 ['text' => 'Channel', 'url' => 'https://t.me/nextbitcoinpro'],
             ],
             [
-                ['text' => 'Play Now', 'web_app' => ['url' => $urlSent]]
+                ['text' => 'Play Now', 'web_app' => ['url' =>  $referralLink]]
             ]
         ]
     ])
