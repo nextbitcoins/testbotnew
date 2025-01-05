@@ -15,7 +15,7 @@ $user_id = $update['message']['from']['id']; // Extract the user's ID for dynami
 $user_name = $update['message']['from']['first_name']; // Get user's first name
 
 // Path to the image
-$photoPath = __DIR__ . '/home.png'; // Absolute path to the image
+$photoPath = __DIR__ . '/banner.jpg'; // Absolute path to the image
 
 // Check if the "/start" command has a referral
 if (isset($update['message']['text']) && strpos($text, '/start') === 0) {
@@ -52,26 +52,30 @@ if (isset($update['message']['text']) && strpos($text, '/start') === 0) {
     if ($text === '/start' || $referrer_id) {
         // Caption for the welcome message
               $caption = "
-      
-🎉🐼 Welcome to Bao Bao Panda - Your Meme Hub! 🐼🎉
+📜 NBET Mining Game Rules 📜
 
-Hey there, meme lover! 😄
-Welcome to Bao Bao Panda, the ultimate Telegram mini app for endless laughs, trending memes, and wholesome panda vibes. 🎭✨
+⛏️ 1. Mine to Earn: Start mining and earn Next Bitcoin Energy Tokens (NBET). The more you mine, the more you earn!
 
-📌 What’s in it for you?
+🏅 2. Leaderboard: Compete globally to top the leaderboard with the most NBET!
 
-🐾 The funniest, freshest memes delivered daily.
-🐾 A platform to share your own meme creations.
-🐾 Meme battles, contests, and more exciting surprises!
-🌍💖 Get ready to unleash your inner panda and join the fun. Let’s make memes, not war!
+🎯 3. Daily Missions: Complete daily tasks for bonus rewards!
 
-👉 Start exploring now: Open Bao Bao Panda Mini App
+🎁 4. Daily Rewards: Log in daily for free rewards!
 
-🐾 Tag your friends and spread the laughs! 🎉
-        ";
+👥 5. Refer & Earn: Invite friends for bigger rewards and higher withdrawal limits.
+
+💼 6. Withdrawal Rules:
+
+*More referrals = Higher withdrawal limits.
+*Complete missions for eligibility.
+*Monthly withdrawal caps based on referrals and activity.
+⚙️ 7. Customize: Adjust settings to suit your style!
+
+Start mining now and earn rewards! 💸
+";
 
         // If there was a referrer, include their ID in the link
-        $referralLink = $referrer_id ? "https://play.baobaopanda.com/?ref=$referrer_id" : "https://play.baobaopanda.com";
+        $referralLink = $referrer_id ? "https://testone.nextbitcoin.pro/?ref=$referrer_id" : "https://testone.nextbitcoin.pro";
  
 
         // Check if file exists
@@ -93,11 +97,11 @@ Welcome to Bao Bao Panda, the ultimate Telegram mini app for endless laughs, tre
     'reply_markup' => json_encode([
         'inline_keyboard' => [
             [
-                ['text' => 'Official channel', 'url' => 'https://t.me/Mybaobaopanda'],
-                ['text' => 'Twitter', 'url' => 'https://x.com/BaoBaoPandaMeme']
+                ['text' => 'Whitepaper', 'url' => 'https://next-bitcoin-protocol.gitbook.io/next-bitcoin-enegry-token/v/nbet-white-paper'],
+                ['text' => 'Channel', 'url' => 'https://t.me/nextbitcoinpro'],
             ],
             [
-                ['text' => 'Play', 'web_app' => ['url' => $referralLink]]
+                ['text' => 'Play Now', 'web_app' => ['url' => $urlSent]]
             ]
         ]
     ])
