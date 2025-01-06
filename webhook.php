@@ -86,28 +86,7 @@ if (isset($text) && strpos($text, '/start') === 0) {
     }
 
     // Standard /start welcome message with image
-    $caption = "
-📜 NBET Mining Game Rules 📜
-
-⛏️ 1. Mine to Earn: Start mining and earn Next Bitcoin Energy Tokens (NBET). The more you mine, the more you earn!
-
-🏅 2. Leaderboard: Compete globally to top the leaderboard with the most NBET!
-
-🎯 3. Daily Missions: Complete daily tasks for bonus rewards!
-
-🎁 4. Daily Rewards: Log in daily for free rewards!
-
-👥 5. Refer & Earn: Invite friends for bigger rewards and higher withdrawal limits.
-
-💼 6. Withdrawal Rules:
-
-*More referrals = Higher withdrawal limits.
-*Complete missions for eligibility.
-*Monthly withdrawal caps based on referrals and activity.
-⚙️ 7. Customize: Adjust settings to suit your style!
-
-Start mining now and earn rewards! 💸
-";
+    $caption = "x";
 
     $referralLink = $referrer_id ? "https://testone.nextbitcoin.pro/?ref=$referrer_id" : "https://testone.nextbitcoin.pro";
 
