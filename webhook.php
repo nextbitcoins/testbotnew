@@ -86,7 +86,7 @@ if (isset($text) && strpos($text, '/start') === 0) {
     }
 
     // Standard /start welcome message with image
-    $caption = `
+    $caption = "
     📜 NBGT Mining Game Rules 📜
 
 ⛏️ 1. Mine to Earn: Start mining and earn Next Bitcoin Governance Tokens (NBGT). The more you mine, the more you earn!
@@ -108,7 +108,7 @@ if (isset($text) && strpos($text, '/start') === 0) {
 
 Start mining now and earn rewards with NBGT! 💸🚀
 
-    `;
+    ";
     $referralLink = $referrer_id ? "https://testone.nextbitcoin.pro/?ref=$referrer_id" : "https://testone.nextbitcoin.pro";
 
     // Check if file exists
