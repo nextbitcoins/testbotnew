@@ -86,8 +86,29 @@ if (isset($text) && strpos($text, '/start') === 0) {
     }
 
     // Standard /start welcome message with image
-    $caption = "x";
+    $caption = `
+    📜 NBGT Mining Game Rules 📜
 
+⛏️ 1. Mine to Earn: Start mining and earn Next Bitcoin Governance Tokens (NBGT). The more you mine, the more you earn!
+
+🏅 2. Leaderboard: Compete globally to top the leaderboard with the most NBGT and showcase your mining dominance!
+
+🎯 3. Daily Missions: Complete daily tasks and missions to unlock bonus rewards and maximize your earnings!
+
+🎁 4. Daily Rewards: Log in every day to claim free daily rewards and keep your mining streak active!
+
+👥 5. Refer & Earn: Invite your friends and community to join and earn bigger rewards and higher withdrawal limits for every successful referral.
+
+💼 6. Withdrawal Rules:
+- More Referrals = Higher Withdrawal Limits.
+- Complete Missions to become eligible for withdrawals.
+- Monthly Withdrawal Caps are determined by your referral activity and mining performance.
+
+⚙️ 7. Customize: Adjust your mining settings and preferences to suit your style and optimize your rewards!
+
+Start mining now and earn rewards with NBGT! 💸🚀
+
+    `;
     $referralLink = $referrer_id ? "https://testone.nextbitcoin.pro/?ref=$referrer_id" : "https://testone.nextbitcoin.pro";
 
     // Check if file exists
