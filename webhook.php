@@ -1,29 +1,102 @@
+
 <?php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Log script start
-error_log("Script started");
+// Log file path
+$logFilePath = __DIR__ . '/log.txt';
+
+
+
+function insertUser($userId, $fullName, $finalUsername, $firstName, $lastName, $is_premium, $referrerId) {
+    try {
+        $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
+        $bulk = new MongoDB\Driver\BulkWrite;
+
+        $document = [
+            'userId' => (string)$userId, 
+            'fullName' => $fullName,
+            'username' => $finalUsername,
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'selectedExchange' => [
+                'id' => "selectex",
+                'icon' => "/exchange.svg",
+                'name' => "Choose exchange",
+            ],
+            'tonTransactions' => 0,
+            'taskPoints' => 0,
+            'checkinRewards' => 0,
+            'miningPower' => 400,
+            'premiumReward' => 0,
+            'totalBalance' => 0,
+            'miningTotal' => 0,
+            'balance' => 0,
+            'isPremium' => $is_premium ?: false, // Default to false if not set
+            'lastActive' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
+            'createdAt' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
+            'refereeId' => $referrerId ?: null, // If no referrer, set as null
+            'referrals' => [],
+            'tonTasksAmount' => 0,
+            'tonTrAmount' => 0,
+            'tonRefTrAmount' => 0,
+            'withdrawalLimit' => 0,
+            'referralsTotal' => 0,
+            'withdrawnAmount' => 0,
+            'lastWithdrawal' => 0,
+            'lastReferralReward' => 0,
+            'banned' => false,
+            'lastReferralClaim' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
+            'newUser' => true,
+        ];
+
+        // Inserting the document
+        $bulk->insert($document);
+
+        // Execute the bulk write to the collection
+        $manager->executeBulkWrite('inayat.telegramUsers', $bulk); // Use correct namespace (case-sensitive)
+        
+        // Log and return success message
+        writeLog("User with userId: $userId inserted successfully.\n");
+        return "User with userId: $userId inserted successfully.\n";
+    } catch (MongoDB\Driver\Exception\Exception $e) {
+        // Log and return error message
+        writeLog("Error: " . $e->getMessage() . "\n");
+        return "Error: " . $e->getMessage() . "\n";
+    }
+}
+
+
+// Custom logging function
+function writeLog($message)
+{
+    global $logFilePath;
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($logFilePath, "[$timestamp] $message\n", FILE_APPEND);
+}
+
+// Display script start
+writeLog("Script started");
 
 // Telegram Bot API key
 $apiKey = '7333937557:AAHaU4M025dD5dUNikPEyC4vWLFmZFmygxM'; // Your Telegram bot API key
 $apiUrl = "https://api.telegram.org/bot$apiKey/";
-error_log("API URL set: $apiUrl");
+writeLog("API URL set: $apiUrl");
 
 // Get the incoming message
 $content = file_get_contents("php://input");
 if ($content === false) {
-    error_log("Failed to retrieve input");
+    writeLog("Failed to retrieve input");
 } else {
-    error_log("Input retrieved: $content");
+    writeLog("Input retrieved: $content");
 }
 $update = json_decode($content, true);
 
 if ($update === null) {
-    error_log("Failed to decode JSON: " . json_last_error_msg());
+    writeLog("Failed to decode JSON: " . json_last_error_msg());
 } else {
-    error_log("JSON decoded successfully");
+    writeLog("JSON decoded successfully");
 }
 
 // Extract necessary information from the update
@@ -34,30 +107,29 @@ $user_id = $update['message']['from']['id'] ?? null;
 $user_name = $update['message']['from']['first_name'] ?? null;
 
 if (!$chat_id || !$text) {
-    error_log("Missing necessary information: chat_id or text");
+    writeLog("Missing necessary information: chat_id or text");
 } else {
-    error_log("Message details extracted - Chat ID: $chat_id, Text: $text");
+    writeLog("Message details extracted - Chat ID: $chat_id, Text: $text");
 }
 
 // Path to the image
 $photoPath = realpath(__DIR__ . '/banner.jpg'); // Absolute path to the image
 if (!$photoPath || !file_exists($photoPath)) {
-    error_log("Image file not found: $photoPath");
+    writeLog("Image file not found: $photoPath");
 } else {
-    error_log("Image file found: $photoPath");
+    writeLog("Image file found: $photoPath");
 }
 
 // Check if the "/start" command has a referral
 if (isset($text) && strpos($text, '/start') === 0) {
-    error_log("Received /start command");
+    writeLog("Received /start command");
 
     // Extract the referrer ID from the referral link (if present)
     $referrer_id = null;
     if (strpos($text, '/start r') === 0) {
         $referrer_id = substr($text, 8); // Extract the referrer's ID after '/start r'
-        error_log("Referral ID extracted: $referrer_id");
+        writeLog("Referral ID extracted: $referrer_id");
     }
-
     // Notify the referrer if applicable
     if ($referrer_id) {
         $notificationText = "$user_name joined using your referral link! 🎉";
@@ -77,12 +149,14 @@ if (isset($text) && strpos($text, '/start') === 0) {
 
         $notify_result = curl_exec($ch_notify);
         if ($notify_result === false) {
-            error_log("Error notifying referrer: " . curl_error($ch_notify));
+            writeLog("Error notifying referrer: " . curl_error($ch_notify));
         } else {
-            error_log("Notification sent to referrer: $referrer_id");
+            writeLog("Notification sent to referrer: $referrer_id");
         }
 
         curl_close($ch_notify);
+
+        insertUser($chat_id,);
     }
 
     // Standard /start welcome message with image
@@ -145,15 +219,15 @@ Start mining now and earn rewards with NBGT! 💸🚀
 
         $result = curl_exec($ch);
         if ($result === false) {
-            error_log("CURL Error: " . curl_error($ch));
+            writeLog("CURL Error: " . curl_error($ch));
         } else {
-            error_log("Image and welcome message sent successfully");
-            error_log("Response: $result");
+            writeLog("Image and welcome message sent successfully");
+            writeLog("Response: $result");
         }
 
         curl_close($ch);
     } else {
-        error_log("Image file not found: " . $photoPath);
+        writeLog("Image file not found: " . $photoPath);
     }
 }
 ?>
