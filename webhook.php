@@ -1,4 +1,3 @@
-
 <?php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -7,42 +6,43 @@ error_reporting(E_ALL);
 // Log file path
 $logFilePath = __DIR__ . '/log.txt';
 
+// MongoDB connection
+function getMongoManager() {
+    return new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
+}
+
+// Log messages
+function writeLog($message) {
+    global $logFilePath;
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($logFilePath, "[$timestamp] $message\n", FILE_APPEND);
+}
+
+// Find user by userId
 function findUserByUserId($userId) {
     try {
-        // MongoDB connection
-        $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
-
-        // Create a query to find the user by userId
-        $filter = ['userId' => (string)$userId]; // Ensure userId is a string
-        $options = [];
-        $query = new MongoDB\Driver\Query($filter, $options);
-
-        // Execute the query
+        $manager = getMongoManager();
+        $filter = ['userId' => (string)$userId];
+        $query = new MongoDB\Driver\Query($filter);
         $cursor = $manager->executeQuery('inayat.telegramUsers', $query);
-
-        // Check if the user exists
-        $user = current($cursor->toArray()); // Convert cursor to array and get the first result
-        return $user ? true : false;
+        return current($cursor->toArray()) ? true : false;
     } catch (MongoDB\Driver\Exception\Exception $e) {
-        // Log the error
-        writeLog("Error: " . $e->getMessage() . "\n");
-        return false; // Return false in case of an error
+        writeLog("Error in findUserByUserId: " . $e->getMessage());
+        return false;
     }
 }
 
-
-
-function insertUser($USERID, $FULLNAME, $FINALUSERNAME, $FIRSTNAME, $LASTNAME, $ISPREMIUM, $REFERRERID) {
+// Insert a new user
+function insertUser($userId, $fullName, $username, $firstName, $lastName, $isPremium, $referrerId) {
     try {
-        $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
+        $manager = getMongoManager();
         $bulk = new MongoDB\Driver\BulkWrite;
-
         $document = [
-            'userId' => (string)$USERID, 
-            'fullName' => $FULLNAME,
-            'username' => $FINALUSERNAME,
-            'firstName' => $FIRSTNAME,
-            'lastName' => $LASTNAME,
+            'userId' => (string)$userId,
+            'fullName' => $fullName,
+            'username' => $username ?: $userId,
+            'firstName' => $firstName,
+            'lastName' => $lastName,
             'selectedExchange' => [
                 'id' => "selectex",
                 'icon' => "/exchange.svg",
@@ -56,10 +56,10 @@ function insertUser($USERID, $FULLNAME, $FINALUSERNAME, $FIRSTNAME, $LASTNAME, $
             'totalBalance' => 0,
             'miningTotal' => 0,
             'balance' => 0,
-            'isPremium' => $ISPREMIUM ?: false, // Default to false if not set
-            'lastActive' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
-            'createdAt' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
-            'refereeId' => $REFERRERID ?: null, // If no referrer, set as null
+            'isPremium' => $isPremium ?: false,
+            'lastActive' => new MongoDB\BSON\UTCDateTime(),
+            'createdAt' => new MongoDB\BSON\UTCDateTime(),
+            'refereeId' => $referrerId ?: null,
             'referrals' => [],
             'tonTasksAmount' => 0,
             'tonTrAmount' => 0,
@@ -70,153 +70,75 @@ function insertUser($USERID, $FULLNAME, $FINALUSERNAME, $FIRSTNAME, $LASTNAME, $
             'lastWithdrawal' => 0,
             'lastReferralReward' => 0,
             'banned' => false,
-            'lastReferralClaim' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
+            'lastReferralClaim' => new MongoDB\BSON\UTCDateTime(),
             'newUser' => true,
         ];
-
-        // Inserting the document
         $bulk->insert($document);
-
-        // Execute the bulk write to the collection
-        $manager->executeBulkWrite('inayat.telegramUsers', $bulk); // Use correct namespace (case-sensitive)
-        
-        // Log and return success message
-        writeLog("User with userId: $USERID inserted successfully.\n");
-        return "User with userId: $USERID inserted successfully.\n";
+        $manager->executeBulkWrite('inayat.telegramUsers', $bulk);
+        writeLog("User with userId: $userId inserted successfully.");
+        return true;
     } catch (MongoDB\Driver\Exception\Exception $e) {
-        // Log and return error message
-        writeLog("Error: " . $e->getMessage() . "\n");
-        return "Error: " . $e->getMessage() . "\n";
+        writeLog("Error in insertUser: " . $e->getMessage());
+        return false;
     }
 }
 
-
-// Custom logging function
-function writeLog($message)
-{
-    global $logFilePath;
-    $timestamp = date('Y-m-d H:i:s');
-    file_put_contents($logFilePath, "[$timestamp] $message\n", FILE_APPEND);
-}
-
-// Display script start
-writeLog("Script started");
-
-// Telegram Bot API key
-$apiKey = '7333937557:AAHaU4M025dD5dUNikPEyC4vWLFmZFmygxM'; // Your Telegram bot API key
+// Telegram API setup
+$apiKey = '7333937557:AAHaU4M025dD5dUNikPEyC4vWLFmZFmygxM';
 $apiUrl = "https://api.telegram.org/bot$apiKey/";
-writeLog("API URL set: $apiUrl");
 
-// Get the incoming message
+// Handle incoming updates
 $content = file_get_contents("php://input");
 if ($content === false) {
-    writeLog("Failed to retrieve input");
-} else {
-    writeLog("Input retrieved: $content");
+    writeLog("Failed to retrieve input.");
+    exit;
 }
 $update = json_decode($content, true);
-
 if ($update === null) {
     writeLog("Failed to decode JSON: " . json_last_error_msg());
-} else {
-    writeLog("JSON decoded successfully");
+    exit;
 }
 
-// Extract necessary information from the update
-$chat_id = $update['message']['chat']['id'] ?? null;
-$text = $update['message']['text'] ?? null;
-$message_id = $update['message']['message_id'] ?? null;
-$user_id = $update['message']['from']['id'] ?? null;
-$firstName = $update['message']['from']['first_name'] ?? null;
-$lastName = $update['message']['from']['last_name'] ?? null;
-$username = $update['message']['from']['username'] ?? null;
-$is_premium = $update['message']['from']['is_premium'];
-$chat_type = $update['message']['chat']['type'];
+// Extract message details
+$message = $update['message'] ?? [];
+$chatId = $message['chat']['id'] ?? null;
+$text = $message['text'] ?? null;
+$userId = $message['from']['id'] ?? null;
+$firstName = $message['from']['first_name'] ?? null;
+$lastName = $message['from']['last_name'] ?? null;
+$username = $message['from']['username'] ?? null;
+$isPremium = $message['from']['is_premium'] ?? false;
+$chatType = $message['chat']['type'] ?? null;
 
-writeLog("INFO: Received a message update.");
-writeLog("Chat ID: $chat_id");
-writeLog("Text: $text");
-writeLog("Message ID: $message_id");
-writeLog("User ID: $user_id");
-writeLog("First Name: $firstName");
-writeLog("Last Name: $lastName");
-writeLog("Username: $username");
-writeLog("Is Premium: " . ($is_premium ? 'Yes' : 'No'));
-writeLog("Chat Type: $chat_type");
-
-if($chat_type !== 'private'){
-    die;
+// Validate incoming message
+if ($chatType !== 'private') {
+    exit;
 }
 
-if (!$chat_id || !$text) {
-    writeLog("Missing necessary information: chat_id or text");
-} else {
-    writeLog("Message details extracted - Chat ID: $chat_id, Text: $text");
+if (!$chatId || !$text) {
+    writeLog("Missing chat ID or text in the update.");
+    exit;
 }
 
-// Path to the image
-$photoPath = realpath(__DIR__ . '/banner.jpg'); // Absolute path to the image
-if (!$photoPath || !file_exists($photoPath)) {
-    writeLog("Image file not found: $photoPath");
-} else {
-    writeLog("Image file found: $photoPath");
-}
-
-// Check if the "/start" command has a referral
-if (isset($text) && strpos($text, '/start') === 0) {
-    writeLog("Received /start command");
-
-   $userAlreadyExist =  findUserByUserId($user_id);
-   
-
-    // Extract the referrer ID from the referral link (if present)
-    $referrer_id = null;
+// Process the "/start" command
+if (strpos($text, '/start') === 0) {
+    $referrerId = null;
     if (strpos($text, '/start r') === 0) {
-        $referrer_id = substr($text, 8); // Extract the referrer's ID after '/start r'
-        writeLog("Referral ID extracted: $referrer_id");
-    }
-    if(!$userAlreadyExist){
-        insertUser($user_id, $first_name." ".$lastName, $username, $firstName, $lastName, $is_premium, $referrer_id) 
-    }else{
-
+        $referrerId = substr($text, 8);
     }
 
-
-
-
-    // Notify the referrer if applicable
-    if ($referrer_id) {
-        $notificationText = "$user_name joined using your referral link! 🎉";
-        $ch_notify = curl_init();
-        curl_setopt($ch_notify, CURLOPT_URL, $apiUrl . "sendMessage");
-        curl_setopt($ch_notify, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch_notify, CURLOPT_POST, 1);
-
-        $post_notify = [
-            'chat_id' => $referrer_id,
-            'text' => $notificationText
-        ];
-
-        curl_setopt($ch_notify, CURLOPT_POSTFIELDS, $post_notify);
-        curl_setopt($ch_notify, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch_notify, CURLOPT_SSL_VERIFYHOST, 0);
-
-        $notify_result = curl_exec($ch_notify);
-        if ($notify_result === false) {
-            writeLog("Error notifying referrer: " . curl_error($ch_notify));
-        } else {
-            writeLog("Notification sent to referrer: $referrer_id");
+    if (!findUserByUserId($userId)) {
+        $insertResult = insertUser($userId, "$firstName $lastName", $username, $firstName, $lastName, $isPremium, $referrerId);
+        if ($insertResult && $referrerId) {
+            $notificationText = "$username joined using your referral link! 🎉";
+            file_get_contents($apiUrl . "sendMessage?chat_id=$referrerId&text=" . urlencode($notificationText));
         }
-        if(!$username){
-            writeLog("Private :  $username");
-            $username = $user_id;
-        }
-
-        curl_close($ch_notify);
     }
+}
 
-
-    // Standard /start welcome message with image
+// Send welcome message with image
+$photoPath = __DIR__ . '/banner.jpg';
+if (file_exists($photoPath)) {
     $caption = "
     📜 NBGT Mining Game Rules 📜
 
@@ -240,51 +162,24 @@ if (isset($text) && strpos($text, '/start') === 0) {
 Start mining now and earn rewards with NBGT! 💸🚀
 
     ";
-    $referralLink = $referrer_id ? "https://testone.nextbitcoin.pro/?ref=$referrer_id" : "https://testone.nextbitcoin.pro";
+    $referralLink = $referrerId ? "https://testone.nextbitcoin.pro/?ref=$referrerId" : "https://testone.nextbitcoin.pro";
 
-    // Check if file exists
-    if (file_exists($photoPath)) {
-        $realPath = realpath($photoPath);
+    $postFields = [
+        'chat_id' => $chatId,
+        'photo' => new CURLFile($photoPath),
+        'caption' => $caption,
+        'parse_mode' => 'Markdown',
+        'reply_markup' => json_encode([
+            'inline_keyboard' => [
+                [['text' => 'Start Mining', 'url' => $referralLink]],
+            ],
+        ]),
+    ];
 
-        // Send the image with the caption
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $apiUrl . "sendPhoto");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-
-        $post_fields = [
-            'chat_id' => $chat_id,
-            'photo' => new CURLFILE($realPath),
-            'caption' => $caption,
-            'parse_mode' => 'Markdown',
-            'reply_markup' => json_encode([
-                'inline_keyboard' => [
-                    [
-                        ['text' => 'Whitepaper', 'url' => 'https://next-bitcoin-protocol.gitbook.io/next-bitcoin-enegry-token/v/nbet-white-paper'],
-                        ['text' => 'Channel', 'url' => 'https://t.me/nextbitcoinpro'],
-                    ],
-                    [
-                        ['text' => 'Play Now', 'web_app' => ['url' => $referralLink]]
-                    ]
-                ]
-            ])
-        ];
-
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-
-        $result = curl_exec($ch);
-        if ($result === false) {
-            writeLog("CURL Error: " . curl_error($ch));
-        } else {
-            writeLog("Image and welcome message sent successfully");
-            writeLog("Response: $result");
-        }
-
-        curl_close($ch);
-    } else {
-        writeLog("Image file not found: " . $photoPath);
-    }
+    $ch = curl_init($apiUrl . "sendPhoto");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+    curl_exec($ch);
+    curl_close($ch);
 }
-?>
