@@ -3,63 +3,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-
-
-
-function insertUser($userId, $fullName) {
-    try {
-        $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
-        $bulk = new MongoDB\Driver\BulkWrite;
-        $document = [
-            'userId' => $userId,
-            'fullName' => $fullName,
-        ];
-        $bulk->insert($document);
-        $manager->executeBulkWrite('telegramUsers', $bulk);
-        return "User with userId: $userId inserted successfully.\n";
-    } catch (MongoDB\Driver\Exception\Exception $e) {
-        return "Error: " . $e->getMessage() . "\n";
-    }
-}
-
-
-function findUserById($userId) {
-    try {
-        // Connect to MongoDB
-        $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
-
-        // Define the filter to find the user by userId
-        $filter = ['userId' => $userId];
-        $options = []; // Add any query options if needed (e.g., projection)
-
-        // Create and execute the query
-        $query = new MongoDB\Driver\Query($filter, $options);
-        $cursor = $manager->executeQuery('telegramUsers', $query);
-
-        // Process the results
-        $dataFound = false;
-        foreach ($cursor as $document) {
-            $dataFound = true;
-            return $document; // Return the first matching document
-        }
-
-        if (!$dataFound) {
-            return null; // No user found
-        }
-    } catch (MongoDB\Driver\Exception\Exception $e) {
-        // Handle exceptions
-        echo "Error: ", $e->getMessage(), "\n";
-        return null;
-    }
-}
-
-
-
-
-
-
-
-
 // Log script start
 error_log("Script started");
 
@@ -114,13 +57,6 @@ if (isset($text) && strpos($text, '/start') === 0) {
         $referrer_id = substr($text, 8); // Extract the referrer's ID after '/start r'
         error_log("Referral ID extracted: $referrer_id");
     }
-
-    $found =  findUserById($chat_id);
-    error_log("User is found or not: $found");
-
-
-
-
 
     // Notify the referrer if applicable
     if ($referrer_id) {
