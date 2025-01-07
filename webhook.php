@@ -7,19 +7,42 @@ error_reporting(E_ALL);
 // Log file path
 $logFilePath = __DIR__ . '/log.txt';
 
+function findUserByUserId($userId) {
+    try {
+        // MongoDB connection
+        $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
+
+        // Create a query to find the user by userId
+        $filter = ['userId' => (string)$userId]; // Ensure userId is a string
+        $options = [];
+        $query = new MongoDB\Driver\Query($filter, $options);
+
+        // Execute the query
+        $cursor = $manager->executeQuery('inayat.telegramUsers', $query);
+
+        // Check if the user exists
+        $user = current($cursor->toArray()); // Convert cursor to array and get the first result
+        return $user ? true : false;
+    } catch (MongoDB\Driver\Exception\Exception $e) {
+        // Log the error
+        writeLog("Error: " . $e->getMessage() . "\n");
+        return false; // Return false in case of an error
+    }
+}
 
 
-function insertUser($userId, $fullName, $finalUsername, $firstName, $lastName, $is_premium, $referrerId) {
+
+function insertUser($USERID, $FULLNAME, $FINALUSERNAME, $FIRSTNAME, $LASTNAME, $ISPREMIUM, $REFERRERID) {
     try {
         $manager = new MongoDB\Driver\Manager("mongodb://Nbetadmin:Zoya%401996_%40%26190%23@146.190.119.235:27017/inayat?authSource=admin");
         $bulk = new MongoDB\Driver\BulkWrite;
 
         $document = [
-            'userId' => (string)$userId, 
-            'fullName' => $fullName,
-            'username' => $finalUsername,
-            'firstName' => $firstName,
-            'lastName' => $lastName,
+            'userId' => (string)$USERID, 
+            'fullName' => $FULLNAME,
+            'username' => $FINALUSERNAME,
+            'firstName' => $FIRSTNAME,
+            'lastName' => $LASTNAME,
             'selectedExchange' => [
                 'id' => "selectex",
                 'icon' => "/exchange.svg",
@@ -33,10 +56,10 @@ function insertUser($userId, $fullName, $finalUsername, $firstName, $lastName, $
             'totalBalance' => 0,
             'miningTotal' => 0,
             'balance' => 0,
-            'isPremium' => $is_premium ?: false, // Default to false if not set
+            'isPremium' => $ISPREMIUM ?: false, // Default to false if not set
             'lastActive' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
             'createdAt' => new MongoDB\BSON\UTCDateTime(), // Use MongoDB DateTime
-            'refereeId' => $referrerId ?: null, // If no referrer, set as null
+            'refereeId' => $REFERRERID ?: null, // If no referrer, set as null
             'referrals' => [],
             'tonTasksAmount' => 0,
             'tonTrAmount' => 0,
@@ -58,8 +81,8 @@ function insertUser($userId, $fullName, $finalUsername, $firstName, $lastName, $
         $manager->executeBulkWrite('inayat.telegramUsers', $bulk); // Use correct namespace (case-sensitive)
         
         // Log and return success message
-        writeLog("User with userId: $userId inserted successfully.\n");
-        return "User with userId: $userId inserted successfully.\n";
+        writeLog("User with userId: $USERID inserted successfully.\n");
+        return "User with userId: $USERID inserted successfully.\n";
     } catch (MongoDB\Driver\Exception\Exception $e) {
         // Log and return error message
         writeLog("Error: " . $e->getMessage() . "\n");
@@ -104,7 +127,26 @@ $chat_id = $update['message']['chat']['id'] ?? null;
 $text = $update['message']['text'] ?? null;
 $message_id = $update['message']['message_id'] ?? null;
 $user_id = $update['message']['from']['id'] ?? null;
-$user_name = $update['message']['from']['first_name'] ?? null;
+$firstName = $update['message']['from']['first_name'] ?? null;
+$lastName = $update['message']['from']['last_name'] ?? null;
+$username = $update['message']['from']['username'] ?? null;
+$is_premium = $update['message']['from']['is_premium'];
+$chat_type = $update['message']['chat']['type'];
+
+writeLog("INFO: Received a message update.");
+writeLog("Chat ID: $chat_id");
+writeLog("Text: $text");
+writeLog("Message ID: $message_id");
+writeLog("User ID: $user_id");
+writeLog("First Name: $firstName");
+writeLog("Last Name: $lastName");
+writeLog("Username: $username");
+writeLog("Is Premium: " . ($is_premium ? 'Yes' : 'No'));
+writeLog("Chat Type: $chat_type");
+
+if($chat_type !== 'private'){
+    die;
+}
 
 if (!$chat_id || !$text) {
     writeLog("Missing necessary information: chat_id or text");
@@ -124,12 +166,24 @@ if (!$photoPath || !file_exists($photoPath)) {
 if (isset($text) && strpos($text, '/start') === 0) {
     writeLog("Received /start command");
 
+   $userAlreadyExist =  findUserByUserId($user_id);
+   
+
     // Extract the referrer ID from the referral link (if present)
     $referrer_id = null;
     if (strpos($text, '/start r') === 0) {
         $referrer_id = substr($text, 8); // Extract the referrer's ID after '/start r'
         writeLog("Referral ID extracted: $referrer_id");
     }
+    if(!$userAlreadyExist){
+        insertUser($user_id, $first_name." ".$lastName, $username, $firstName, $lastName, $is_premium, $referrer_id) 
+    }else{
+
+    }
+
+
+
+
     // Notify the referrer if applicable
     if ($referrer_id) {
         $notificationText = "$user_name joined using your referral link! 🎉";
@@ -153,11 +207,14 @@ if (isset($text) && strpos($text, '/start') === 0) {
         } else {
             writeLog("Notification sent to referrer: $referrer_id");
         }
+        if(!$username){
+            writeLog("Private :  $username");
+            $username = $user_id;
+        }
 
         curl_close($ch_notify);
-
-        insertUser($chat_id,);
     }
+
 
     // Standard /start welcome message with image
     $caption = "
